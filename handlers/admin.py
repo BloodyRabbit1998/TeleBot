@@ -2,10 +2,10 @@ from aiogram import types, F, Router
 from aiogram.types import Message
 from aiogram.filters import Command
 from config import *
-import kb,tabulate
+import kb,tabulate,database.request as rq
 from datetime import datetime,timedelta
-import db 
-router=Router()
+
+router=Router()           
 
 @router.message(Command("start"))
 async def start_handler(msg:Message):
@@ -19,32 +19,7 @@ async def start_handler(msg:Message):
 Для записи введите /write (дата) (время)   
 Для повторного просмотра этого сообщения введите /info или /start               
 """,reply_markup=kb.kb_buttons["start"])
-    
-
-@router.message(F.text=="Информация ℹ️")   
-@router.message(Command('info'))
-async def massage_info(msg:Message):
-     await msg.answer("""
-Список команд:
-    Чтобы посмотреть список услуг введите /prices
-    Чтобы посмотреть время для записи введите /time
-    Для записи введите /write (дата) (время)   
-    Для повторного просмотра этого сообщения введите /info или /start               
-""",reply_markup=kb.kb_buttons["info"])
-     
-@router.message(F.text=="Список услуг 🧾")
-@router.message(Command('prices'))
-async def massage_price(msg:Message):
-    mess=""
-    for i,service in enumerate(PRICES):
-        mess+=f"{i+1}    {service}:    {PRICES[service]} {BANKNOTE[1]}\n"
-    await msg.answer(f"""
-            Доступные услуги:
-{mess}       
-""")
-
         
-
 @router.message(Command('id'))
 async def massage_id(msg:Message):
     await msg.answer(f"Ваш ID: {msg.from_user.id}/n {msg}")
@@ -56,13 +31,10 @@ async def massage_status(msg:Message):
     else:
         await msg.answer(f"Вы клиент") 
 
-@router.message(F.text=="Записаться 📝")
-async def message_time(msg:Message):
-    pass
-
 last_command_admin=None
 
 days=["ПН","ВТ","СР","ЧТ","ПТ","СБ","ВС"]
+
 @router.message(F.text=="Настроить неделю приема")
 async def admin_time_week(msg:Message):
     if str(msg.from_user.id) in ADMINS:
@@ -80,14 +52,14 @@ async def return_command(msg):
         global days
         global table
         if last_command_admin=="week":
-            days1, days2=msg.text.split()
-            date_start=datetime.strptime(days1,"%d-%m-%Y")
-            date_finish=datetime.strptime(days2,"%d-%m-%Y")
+            date_start, date_finish=msg.text.split()
+            date_start=datetime.strptime(date_start,"%d-%m-%Y")
+            date_finish=datetime.strptime(date_finish,"%d-%m-%Y")
             table=[]
             i=1
             while date_start<=date_finish:
-                date=db.return_day(date_start.date)
-                table.append([i,date_start.strftime("%d-%m-%Y"),days[date_start.weekday()],"свободно","","-"] if date else [i,date.day,days[datetime.strftime(date.day).weekday()],"активен",f"{date.start_time}-{date.finish_time}",""])
+                date=await rq.return_day(date_start)
+                table.append([i,date_start.strftime("%d-%m-%Y"),days[date_start.weekday()],"свободно","","-"] if not date else [i,date.day,days[datetime.strftime(date.day).weekday()],"активен",f"{date.start_time}-{date.finish_time}",""])
                 i+=1
                 date_start+=timedelta(days=1)
             mess=f"""
@@ -110,9 +82,9 @@ async def return_command(msg):
                     time2=datetime.strptime(time2,"%H:%M")
                     mess+=f'{i} {time1.strftime("%H:%M")} {time2.strftime("%H:%M")}\n'
                 await msg.answer(mess)
-            elif msg.text=="OK!":
+            elif msg.text in ["OK!","ok!",'ok']:
                 data=[(day, time.split("-")[0], time.split("-")[1]) for _,day,_,status, time,_ in table if status=="активен"]
-                db.add("days",data)
+                await rq.add("days",data)
                 await msg.answer("Сохранено!")
                 await msg.answer_sticker(r'CAACAgIAAxkBAAEDubZl2wXOTo-MjdBeswp5dyI1n0VoRAACYQEAAhAabSLviIx9qppNBzQE')
             else:
