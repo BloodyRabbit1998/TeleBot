@@ -4,7 +4,7 @@ from aiogram.filters import Command
 from config import *
 import kb,tabulate
 from datetime import datetime,timedelta
-
+import db 
 router=Router()
 
 @router.message(Command("start"))
@@ -20,6 +20,7 @@ async def start_handler(msg:Message):
 Для повторного просмотра этого сообщения введите /info или /start               
 """,reply_markup=kb.kb_buttons["start"])
     
+
 @router.message(F.text=="Информация ℹ️")   
 @router.message(Command('info'))
 async def massage_info(msg:Message):
@@ -85,7 +86,8 @@ async def return_command(msg):
             table=[]
             i=1
             while date_start<=date_finish:
-                table.append([i,date_start.strftime("%d-%m-%Y"),days[date_start.weekday()],"свободно","","-"])
+                date=db.return_day(date_start.date)
+                table.append([i,date_start.strftime("%d-%m-%Y"),days[date_start.weekday()],"свободно","","-"] if date else [i,date.day,days[datetime.strftime(date.day).weekday()],"активен",f"{date.start_time}-{date.finish_time}",""])
                 i+=1
                 date_start+=timedelta(days=1)
             mess=f"""
@@ -109,7 +111,10 @@ async def return_command(msg):
                     mess+=f'{i} {time1.strftime("%H:%M")} {time2.strftime("%H:%M")}\n'
                 await msg.answer(mess)
             elif msg.text=="OK!":
-               pass 
+                data=[(day, time.split("-")[0], time.split("-")[1]) for _,day,_,status, time,_ in table if status=="активен"]
+                db.add("days",data)
+                await msg.answer("Сохранено!")
+                await msg.answer_sticker(r'CAACAgIAAxkBAAEDubZl2wXOTo-MjdBeswp5dyI1n0VoRAACYQEAAhAabSLviIx9qppNBzQE')
             else:
                 for day in msg.text.split("\n"):
                     print(day)
