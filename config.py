@@ -13,5 +13,5 @@ PRICES=conf_file["prices"]
 
 BANKNOTE=conf_file["banknote"]
 
-
-
+STANDART_TIME=conf_file["standart"]["time"]
+STANDART_DATE=conf_file["standart"]["date"]

@@ -2,7 +2,7 @@ from aiogram import types, F, Router
 from aiogram.types import Message
 from aiogram.filters import Command
 import kb,tabulate, database.request as rq
-
+from config import *
 router=Router()
 
 @router.message(F.text=="Информация ℹ️")   

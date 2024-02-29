@@ -58,13 +58,26 @@ async def return_command(msg):
             table=[]
             i=1
             while date_start<=date_finish:
-                date=await rq.return_day(date_start)
-                table.append([i,date_start.strftime("%d-%m-%Y"),days[date_start.weekday()],"свободно","","-"] if not date else [i,date.day,days[datetime.strftime(date.day).weekday()],"активен",f"{date.start_time}-{date.finish_time}",""])
+                date=await rq.return_day(date_start.date())
+                if len(date)>0:
+                    date=date[-1]
+                    table.append([i,
+                                    date.day.strftime("%d-%m-%Y"),
+                                    days[date.day.weekday()],
+                                    "активен",
+                                    f"{date.start_time:%H:%M}-{date.finish_time:%H:%M}",
+                                    "*" if await rq.return_day_write(date) else ""])
+                else:
+                    table.append([i,
+                                  date_start.strftime("%d-%m-%Y"),
+                                  days[date_start.weekday()],
+                                  "свободно","00:00-00:00","-"])
                 i+=1
                 date_start+=timedelta(days=1)
             mess=f"""
 Дни для работы. 
-{tabulate.tabulate(table, headers=["  №  ","Дата","День недели","Статус","Время",'Наличие приема'],tablefmt="heavy_outline")}
+
+{tabulate.tabulate(table, headers=["  №  ","Да'та","День недели","Статус","Время",'Наличие приема'],tablefmt="heavy_outline")}
 Для назначения активных дней укажите № дня из списка и через пробел время начала и конца приема в формате (часы):(минуты)
 Для удаления дня введите 00:00 00:00 или одинаковое время 
 для вывода эскиза заполнения введите /template
@@ -82,20 +95,25 @@ async def return_command(msg):
                     time2=datetime.strptime(time2,"%H:%M")
                     mess+=f'{i} {time1.strftime("%H:%M")} {time2.strftime("%H:%M")}\n'
                 await msg.answer(mess)
-            elif msg.text in ["OK!","ok!",'ok']:
-                data=[(day, time.split("-")[0], time.split("-")[1]) for _,day,_,status, time,_ in table if status=="активен"]
+            elif msg.text in ["OK!","ok!",'ok']: 
+                data=[(day, 
+                time.split("-")[0], 
+                time.split("-")[1]) 
+                for _,day,_,status, time,_ in table  
+                if status=="активен" or await rq.return_day(datetime.strptime(day,"%d-%m-%Y").date() )]
+                        
                 await rq.add("days",data)
                 await msg.answer("Сохранено!")
-                await msg.answer_sticker(r'CAACAgIAAxkBAAEDubZl2wXOTo-MjdBeswp5dyI1n0VoRAACYQEAAhAabSLviIx9qppNBzQE')
+                await msg.answer_sticker(r'CAACAgIAAxkBAAEDwRZl3LobBpEP_TR6wZ9ason3Ds5juQACaQADQDHADUw0nE7lxYF2NAQ')
             else:
                 for day in msg.text.split("\n"):
-                    print(day)
                     i,time1,time2=day.split()
                     i=int(i)-1
                     time1=datetime.strptime(time1,"%H:%M")
                     time2=datetime.strptime(time2,"%H:%M")
                     table[i][3]="активен" if time1!=time2 else 'свободно'
                     table[i][4]=f"{time1.strftime('%H:%M')}-{time2.strftime('%H:%M')}"
+                    table[i][5]="*" if await rq.return_day_write(date) else ""]
                 mess=f"""
 Дни для работы. 
 {tabulate.tabulate(table, headers=["  №  ","Дата","День недели","Статус","Время",'Наличие приема'],tablefmt="heavy_outline")}
