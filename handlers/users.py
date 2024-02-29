@@ -5,6 +5,8 @@ import kb,tabulate, database.request as rq
 from config import *
 router=Router()
 
+last_command={}
+
 @router.message(F.text=="Информация ℹ️")   
 @router.message(Command('info'))
 async def massage_info(msg:Message):
@@ -26,6 +28,8 @@ async def massage_price(msg:Message):
             Доступные услуги:
 {mess}       
 """)
+@router.message(F.text=="Список услуг 🧾")
+
 
 @router.message(F.text=="Записаться 📝")
 async def message_time(msg:Message):

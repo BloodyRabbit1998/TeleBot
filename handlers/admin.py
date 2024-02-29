@@ -12,14 +12,15 @@ async def start_handler(msg:Message):
     if str(msg.from_user.id) in ADMINS:
         await msg.answer(f"Вы админ",reply_markup=kb.kb_buttons["admin"]) 
     else:
+        await rq.add("users",data=[[msg.from_user.id,str(msg.from_user.first_name)]])
         await msg.answer("""
-Вас приветсвует Ланская Алена - лучшый массажер планеты!
+Вас приветсвует Ланская Алена!
 Чтобы посмотреть список услуг введите /prices
 Чтобы посмотреть время для записи введите /time
 Для записи введите /write (дата) (время)   
 Для повторного просмотра этого сообщения введите /info или /start               
 """,reply_markup=kb.kb_buttons["start"])
-        
+#TODO: удалить вывод переменной       
 @router.message(Command('id'))
 async def massage_id(msg:Message):
     await msg.answer(f"Ваш ID: {msg.from_user.id}/n {msg}")
@@ -66,7 +67,7 @@ async def return_command(msg):
                                     days[date.day.weekday()],
                                     "активен",
                                     f"{date.start_time:%H:%M}-{date.finish_time:%H:%M}",
-                                    "*" if await rq.return_day_write(date) else ""])
+                                    "*" if await rq.return_day_write(date) else "-"])
                 else:
                     table.append([i,
                                   date_start.strftime("%d-%m-%Y"),
@@ -113,7 +114,7 @@ async def return_command(msg):
                     time2=datetime.strptime(time2,"%H:%M")
                     table[i][3]="активен" if time1!=time2 else 'свободно'
                     table[i][4]=f"{time1.strftime('%H:%M')}-{time2.strftime('%H:%M')}"
-                    table[i][5]="*" if await rq.return_day_write(date) else ""]
+                    table[i][5]="*" if await rq.return_day_write(date) else ""
                 mess=f"""
 Дни для работы. 
 {tabulate.tabulate(table, headers=["  №  ","Дата","День недели","Статус","Время",'Наличие приема'],tablefmt="heavy_outline")}

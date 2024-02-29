@@ -18,12 +18,20 @@ def auto_delete_day():
             db.delete(d_col)
         db.commit()
 async def return_write(id:int):
+    global Session
     async with Session() as db: 
         stmt=select(Appointments).where(Appointments.day_id==id)
         cols=await db.scalars(stmt)
     return [col for col in cols]
 async def return_day_write(day:Days):
     return bool(await return_write(day.id))
+async def user_return(id:int):
+    global Session
+    async with Session() as db:
+        stmt=select(Client).where(Client.telegram_id==id)
+        cols=await db.scalars(stmt)
+    return [col for col in cols]
+
 async def return_day(day:datetime.date):
     global Session
     async with Session() as db: 
@@ -35,7 +43,12 @@ async def add(table:str,data:list[tuple]):
     global Session
     async with Session() as db:  
         if table=="users":
-            cols=[Client(telegram_id=telegram_id,name=name) for telegram_id,name in data ]
+            user=await user_return(data[0][0])
+            if not user:
+                cols=[Client(telegram_id=telegram_id,name=name) for telegram_id,name in data ]
+            else:
+                user=user[-1]
+                user.name=data[0][1]
         elif table=="days":
             cols=[]
             for day,start,finish in data:

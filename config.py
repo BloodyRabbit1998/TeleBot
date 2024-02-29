@@ -1,11 +1,15 @@
 import json
+from dotenv import dotenv_values
 
+env=dotenv_values(".env")  # take environment variables from .env.
 with open('setting.json',"r") as file:
     conf_file=json.load(file)
 
-BOT_TOKEN=conf_file['bot_token']
+URL_SQL=env["SQL_URL"]
 
-GPT_TOKEN=conf_file['gpt_token']
+BOT_TOKEN=env["BOT_TOKEN"]
+
+GPT_TOKEN=env['GPT_TOKEN']
 
 ADMINS=conf_file["admin_ids"]
 
