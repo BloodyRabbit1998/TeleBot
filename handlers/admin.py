@@ -5,7 +5,12 @@ from config import *
 import kb,tabulate,database.request as rq
 from datetime import datetime,timedelta
 
+import re
 router=Router()
+
+last_command_admin=None
+
+days=["ПН","ВТ","СР","ЧТ","ПТ","СБ","ВС"]
 
 @router.message(CommandStart())
 @router.message(F.text=="start")
@@ -52,12 +57,8 @@ async def massage_status(msg:Message):
     else:
         await msg.answer(f"Вы клиент") 
 
-last_command_admin=None
-
-days=["ПН","ВТ","СР","ЧТ","ПТ","СБ","ВС"]
 @router.message(Command("week"))
-@router.message(F.text=="week")
-@router.message(F.text=="Настроить неделю приема")
+@router.message(F.text.in_(["Настроить неделю приема","week"]))
 async def admin_time_week(msg:Message):
     if str(msg.from_user.id) in ADMINS:
         global last_command_admin
@@ -166,9 +167,79 @@ async def admin_time_week_day(msg:Message):
         last_command_admin="week_day"
         await msg.answer(mess)
 
+@router.message(Command("myday"))
+@router.message(F.text.in_(["Посмотреть все приемы", "myday"]))   
+async def myday(msg:Message):
+    if str(msg.from_user.id) in ADMINS:
+        global last_command_admin
+        if msg.text in ["Прием 📝","/myday","mayday"] :
+            last_command_admin="choice day"
+            days=await rq.return_days()
+            table=[[kb.InlineKeyboardButton(text=f"{days[i].day:%d-%m-%Y}",callback_data=f"admin callback {days[i].day:%d-%m-%Y}"),
+                    kb.InlineKeyboardButton(text=f"{days[i+1].day:%d-%m-%Y}",callback_data=f"admin callback {days[i+1].day:%d-%m-%Y}")] 
+                    for i in range(0,len(days)-len(days)%2,2)]
+            if len(days)%2==1:
+                table.append([kb.InlineKeyboardButton(text=f"{days[-1].day:%d-%m-%Y}",callback_data=f"admin callback {days[-1].day:%d-%m-%Y}")])
+            buttons=kb.InlineKeyboardMarkup(inline_keyboard=table)
+            await msg.answer("Укажите даты из предложкеных ниже",reply_markup=buttons)
+        elif "/myday" in msg.text:
+            if re.match(r"/myday \d{2}-\d{2}-\d{4}$", msg.text):
+                date=msg.text.split()[-1]
+                day=await rq.return_day(datetime.strptime(date, "%d-%m-%Y").date())
+                if day:
+                    day=day[-1]
+                    write_list=await rq.return_write(day.id)
+                    if write_list:
+                        table=[[i, f"{write.start_time:%H:%M}",f'{write.id_service}'] for i,write in enumerate(write_list, start=1)]
+                        mess=f"""
+                        {tabulate.tabulate(table, headers=["№", "Время", "Услуга"], tablefmt="heavy_outline")}
+                        """
+                        await msg.answer(mess)
+                    else:
+                        await msg.answer("Нет приемов!")
+                        await msg.answer_sticker(r"CAACAgIAAxkBAAED3xVl5IyvvbVmRwhMlPpX5s2jDepovAACpwoAAhsViErJQuPFqV7QJjQE")
+                else:
+                    await msg.answer("Данный день не отмечен как актиыный!")
 
+@router.message(F.text.regexp(r"myday \d{2}-\d{2}-\d{4}$"))
+async def myday(msg:Message):
+    if str(msg.from_user.id) in ADMINS:
+        date=msg.text.split()[-1]
+        date=datetime.strptime(date, "%d-%m-%Y").date()
+        day=await rq.return_day(date)
+        if day: 
+            day=day[-1]
+            write_list=await rq.return_write(day.id)
+            if write_list:
+                table=[[i, f"{write.start_time:%H:%M}",f'{write.id_service}'] for i,write in enumerate(write_list, start=1)]
+                mess=f"""
+                {tabulate.tabulate(table, headers=["№", "Время", "Услуга"], tablefmt="heavy_outline")}
+                """
+                await msg.answer(mess)
+            else:
+                await msg.answer("Приемов не обнаружено!")
+                await msg.answer_sticker(r"CAACAgIAAxkBAAED3xVl5IyvvbVmRwhMlPpX5s2jDepovAACpwoAAhsViErJQuPFqV7QJjQE")
+        else:
+            await msg.answer("Данный день не отмечен как актиыный!")
 
-
-
-#================USER_COMMANDS=================#
-                
+@router.callback_query(F.data.regexp(r"admin callback \d{2}-\d{2}-\d{4}"))
+async def myday(callback: types.CallbackQuery): 
+    msg=callback.message  
+    if last_command_admin=="choice day":
+        date=datetime.strptime(callback.data.split()[-1], "%d-%m-%Y").date()
+        day=await rq.return_day(date)
+        if day:
+            day=day[-1]
+            write_list=await rq.return_write(day.id)
+            if write_list:
+                table=[[i, f"{write.start_time:%H:%M}",f'{write.id_service}'] for i,write in enumerate(write_list,start=1)]
+                mess=f"""
+{tabulate.tabulate(table, headers=["№", "Время", "Услуга"], tablefmt="heavy_outline")}
+                """
+                await msg.answer(mess)  
+            else:
+                await msg.answer("Приемов не обнаружено!")
+                await msg.answer_sticker(r"CAACAgIAAxkBAAED3xVl5IyvvbVmRwhMlPpX5s2jDepovAACpwoAAhsViErJQuPFqV7QJjQE")
+    else:
+        await msg.answer("Не пониммаю что вы пытветесь сделать!")
+        await msg.answer_sticker(r"CAACAgIAAxkBAAED3xdl5I2BNrCgghh_FRlJ3OQcoNDiFQACWAEAArnzlwuQa2A8PMIO0TQE")
