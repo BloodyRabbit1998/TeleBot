@@ -17,5 +17,9 @@ PRICES=conf_file["prices"]
 
 BANKNOTE=conf_file["banknote"]
 
+PHONE=conf_file["phone"]    
+
+NAME=conf_file["name"]
+
 STANDART_TIME=conf_file["standart"]["time"]
 STANDART_DATE=conf_file["standart"]["date"]

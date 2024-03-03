@@ -1,6 +1,4 @@
-from sqlalchemy import (Table,
-                        Column,
-                        CheckConstraint,
+from sqlalchemy import (CheckConstraint,
                         String,
                         Date,
                         Time,
@@ -14,14 +12,7 @@ from sqlalchemy.orm import (DeclarativeBase,
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine 
 from config import URL_SQL
 class Base(AsyncAttrs,DeclarativeBase): pass
- 
 
-
-appointment_services_association = Table(
-    'appointment_services', Base.metadata,
-    Column('appointment_id', Integer, ForeignKey('appointments.id')),
-    Column('service_id', Integer, ForeignKey('services.id'))
-)
 class Client(Base):
     __tablename__ = "users"
     
@@ -52,8 +43,8 @@ class Appointments(Base):
     day_id:Mapped[int] = mapped_column(ForeignKey("days.id"))
     user_id:Mapped[int] = mapped_column(ForeignKey("users.telegram_id"))
     visit_time:Mapped[Time]=mapped_column(Time)
-    exit_time:Mapped[Time]=mapped_column(Time)
-    services=relationship("Services", secondary=appointment_services_association)
+    exit_time:Mapped[Time]=mapped_column(Time, nullable=True)
+    id_service:Mapped[int]=mapped_column(ForeignKey("services.id"))
 
     __table_args__ = (
         CheckConstraint('visit_time<exit_time', name='start_before_visit'),
@@ -66,6 +57,6 @@ Session = async_sessionmaker(engine)
 
 async def create_db():
     async with engine.begin() as conn:
-#        await conn.run_sync(Base.metadata.drop_all)
+        #await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
