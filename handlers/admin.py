@@ -18,6 +18,7 @@ async def start_handler(msg:Message):
     await msg.answer_sticker(r"CAACAgQAAxkBAAED3Q1l5EuHETdkCgz_OEPKmjcPJXwyxQACAwYAAgtetBq169NzfwFttTQE",reply_markup=kb.kb_buttons["start"])
     if str(msg.from_user.id) in ADMINS:
         await msg.answer(f"Вы админ",reply_markup=kb.kb_buttons["admin"]) 
+        await rq.add("services",[(s,p) for s,p in PRICES.items()])
         await msg.answer("""
         Доступны следующие команты:
     /start          - запуск бота

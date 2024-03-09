@@ -1,0 +1,6 @@
+tabulate 
+greenlet
+sqlalchemy 
+python-dotenv
+aiosqlite
+aiogram 

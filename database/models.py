@@ -57,7 +57,7 @@ Session = async_sessionmaker(engine)
 
 async def create_db():
     async with engine.begin() as conn:
-        if input(":::Удалить БД?::: (y/n): ") == "y":
-            await conn.run_sync(Base.metadata.drop_all)
+        #if input(":::Удалить БД?::: (y/n): ") == "y":
+        #    await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
